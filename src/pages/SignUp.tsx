@@ -23,6 +23,7 @@ export default function SignUp() {
     otp: "",
     password: "",
     confirmPassword: "",
+    gender: "",
   });
   const [error, setError] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -53,6 +54,7 @@ export default function SignUp() {
         email: formData.email,
         password: formData.password,
         username: formData.username,
+        gender: formData.gender,
       });
 
       setIsOtpSent(true);
@@ -132,6 +134,11 @@ export default function SignUp() {
       return;
     }
 
+    if (!formData.gender) {
+      toast.error("Please select your gender");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
@@ -168,9 +175,9 @@ export default function SignUp() {
   return (
     <div className="min-h-screen flex bg-gray-light">
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <div className="text-center mb-8">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+          <div className="text-center mb-4">
             <div className="flex justify-center mb-4">
               <GraduationCap className="h-12 w-12 text-primary" />
             </div>
@@ -189,7 +196,7 @@ export default function SignUp() {
             </div>
           )}
 
-          <form onSubmit={handleSignUp} className="space-y-4">
+          <form onSubmit={handleSignUp} className="space-y-3">
             {/* Name Fields in same line */}
             <div className="flex gap-4">
               <div className="flex-1">
@@ -346,6 +353,62 @@ export default function SignUp() {
                   placeholder="Confirm password"
                   required
                 />
+              </div>
+            </div>
+
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-text mb-2">
+                Gender
+              </label>
+              <div className="flex gap-4">
+                {["Male", "Female", "Other"].map((gender) => (
+                  <label
+                    key={gender}
+                    className={`flex items-center justify-between w-28 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200 
+                      ${
+                        formData.gender === gender
+                          ? "border-primary bg-primary/5"
+                          : "border-gray-200 hover:border-primary/50"
+                      }`}
+                  >
+                    <span className="text-gray-600">{gender}</span>
+                    <div className="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={gender}
+                        checked={formData.gender === gender}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                        ${
+                          formData.gender === gender
+                            ? "border-primary bg-primary"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {formData.gender === gender && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="3"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
 

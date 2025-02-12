@@ -1,8 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, MessageSquare } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Bell, MessageSquare } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
+  const { user } = useAuth();
+
   return (
     <nav className="bg-primary shadow-md pl-64">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,7 +15,7 @@ export default function Navbar() {
             <Link to="/profile">
               <img
                 className="h-8 w-8 rounded-full border-2 border-white"
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150"
+                src={user?.profilePic || "/default-avatar.png"}
                 alt="Profile"
               />
             </Link>

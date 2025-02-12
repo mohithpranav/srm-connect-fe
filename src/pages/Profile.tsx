@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Github,
   Linkedin,
@@ -8,6 +8,13 @@ import {
   Trash2,
   AlertCircle,
 } from "lucide-react";
+import { studentService } from "../services/student.service";
+import { toast } from "sonner";
+import {
+  BRANCH_OPTIONS,
+  YEAR_OPTIONS,
+  INDIAN_STATES,
+} from "../constants/profileOptions";
 
 interface ProfileData {
   name: string;
@@ -42,6 +49,9 @@ export default function Profile() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [stateSearch, setStateSearch] = useState("");
+  const [showStateOptions, setShowStateOptions] = useState(false);
 
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "Aditya Kumar",
@@ -79,6 +89,94 @@ export default function Profile() {
     },
   ]);
 
+  // Filter states based on search
+  const filteredStates = INDIAN_STATES.filter((state) =>
+    state.toLowerCase().includes(stateSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".state-search-container")) {
+        setShowStateOptions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const response = await studentService.getProfile(user.id);
+
+      setProfileData({
+        name: `${response.student.firstName} ${response.student.lastName}`,
+        image: response.student.profilePic || profileData.image,
+        branch: response.student.branch,
+        year: response.student.year,
+        dob: response.student.dob || "2002-05-15",
+        state: response.student.state,
+        linkedinUrl: response.student.linkedinUrl || "",
+        githubUrl: response.student.githubUrl || "",
+        interests: response.student.interests || [],
+        skills: response.student.skills || [],
+        languages: response.student.language || [],
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsLoading(true);
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      const [firstName, lastName] = profileData.name.split(" ");
+      const profilePayload = {
+        id: user.id,
+        firstName,
+        lastName,
+        branch: profileData.branch,
+        year: parseInt(profileData.year),
+        state: profileData.state,
+        skills: profileData.skills || [],
+        interests: profileData.interests || [],
+        language: profileData.languages || [],
+        profilePic: profileData.image,
+        linkedinUrl: profileData.linkedinUrl,
+        githubUrl: profileData.githubUrl,
+      };
+
+      console.log("Sending profile payload:", profilePayload);
+      await studentService.editProfile(profilePayload);
+      setIsEditing(false);
+      toast.success("Profile updated successfully");
+      loadProfile();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    if (isEditing) {
+      handleSaveProfile();
+    } else {
+      setIsEditing(true);
+    }
+  };
+
   const handleAddItem = (
     type: "interests" | "skills" | "languages",
     value: string
@@ -86,7 +184,12 @@ export default function Profile() {
     if (value.trim()) {
       setProfileData((prev) => ({
         ...prev,
-        [type]: [...prev[type], value.trim()],
+        [type]:
+          type === "languages"
+            ? [...prev.languages, value.trim()]
+            : type === "interests"
+            ? [...prev.interests, value.trim()]
+            : [...prev.skills, value.trim()],
       }));
 
       switch (type) {
@@ -109,21 +212,30 @@ export default function Profile() {
   ) => {
     setProfileData((prev) => ({
       ...prev,
-      [type]: prev[type].filter((_, i) => i !== index),
+      [type]:
+        type === "languages"
+          ? prev.languages.filter((_, i) => i !== index)
+          : type === "interests"
+          ? prev.interests.filter((_, i) => i !== index)
+          : prev.skills.filter((_, i) => i !== index),
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData((prev) => ({
-          ...prev,
-          image: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProfileData((prev) => ({
+            ...prev,
+            image: reader.result as string,
+          }));
+        };
+        reader.readAsDataURL(file);
+      } catch (err: any) {
+        toast.error("Failed to upload image");
+      }
     }
   };
 
@@ -153,12 +265,32 @@ export default function Profile() {
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-primary">Profile</h1>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="px-4 py-2 rounded-lg text-white bg-primary hover:bg-primary-dark transition-colors"
-          >
-            {isEditing ? "Save Changes" : "Edit Profile"}
-          </button>
+          <div className="flex gap-2">
+            {isEditing && (
+              <button
+                onClick={() => setIsEditing(false)}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-lg text-gray-600 border border-gray-300 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleEditClick}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-lg text-white transition-colors ${
+                isLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary-dark"
+              }`}
+            >
+              {isLoading
+                ? "Saving..."
+                : isEditing
+                ? "Save Changes"
+                : "Edit Profile"}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -205,13 +337,13 @@ export default function Profile() {
 
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Branch Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-text">
+              <label className="block text-sm font-medium text-gray-dark mb-1">
                 Branch
               </label>
               {isEditing ? (
-                <input
-                  type="text"
+                <select
                   value={profileData.branch}
                   onChange={(e) =>
                     setProfileData((prev) => ({
@@ -219,19 +351,27 @@ export default function Profile() {
                       branch: e.target.value,
                     }))
                   }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50"
-                />
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select Branch</option>
+                  {BRANCH_OPTIONS.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
               ) : (
-                <p className="mt-1 text-gray-dark">{profileData.branch}</p>
+                <p className="text-gray-dark">{profileData.branch}</p>
               )}
             </div>
+
+            {/* Year Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-text">
+              <label className="block text-sm font-medium text-gray-dark mb-1">
                 Year
               </label>
               {isEditing ? (
-                <input
-                  type="text"
+                <select
                   value={profileData.year}
                   onChange={(e) =>
                     setProfileData((prev) => ({
@@ -239,12 +379,64 @@ export default function Profile() {
                       year: e.target.value,
                     }))
                   }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50"
-                />
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select Year</option>
+                  {YEAR_OPTIONS.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
               ) : (
-                <p className="mt-1 text-gray-dark">{profileData.year}</p>
+                <p className="text-gray-dark">{profileData.year}</p>
               )}
             </div>
+
+            {/* State Selection with Search */}
+            <div className="relative state-search-container">
+              <label className="block text-sm font-medium text-gray-dark mb-1">
+                State
+              </label>
+              {isEditing ? (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={stateSearch}
+                    onChange={(e) => {
+                      setStateSearch(e.target.value);
+                      setShowStateOptions(true);
+                    }}
+                    onFocus={() => setShowStateOptions(true)}
+                    placeholder="Search state..."
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {showStateOptions && stateSearch && (
+                    <div className="absolute z-10 w-full mt-1 max-h-60 overflow-auto bg-white border rounded-lg shadow-lg">
+                      {filteredStates.map((state) => (
+                        <div
+                          key={state}
+                          onClick={() => {
+                            setProfileData((prev) => ({
+                              ...prev,
+                              state,
+                            }));
+                            setStateSearch(state);
+                            setShowStateOptions(false);
+                          }}
+                          className="w-full p-2 text-left hover:bg-gray-100 cursor-pointer"
+                        >
+                          {state}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-dark">{profileData.state}</p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-text">
                 Date of Birth
@@ -262,26 +454,6 @@ export default function Profile() {
                 <p className="mt-1 text-gray-dark">
                   {new Date(profileData.dob).toLocaleDateString()}
                 </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-text">
-                State
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={profileData.state}
-                  onChange={(e) =>
-                    setProfileData((prev) => ({
-                      ...prev,
-                      state: e.target.value,
-                    }))
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary-light focus:ring-opacity-50"
-                />
-              ) : (
-                <p className="mt-1 text-gray-dark">{profileData.state}</p>
               )}
             </div>
           </div>

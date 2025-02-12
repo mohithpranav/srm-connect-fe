@@ -1,6 +1,11 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, GraduationCap, Building2, Mail, ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  MapPin,
+  GraduationCap,
+  Building2,
+  Mail,
+  ArrowLeft,
+} from "lucide-react";
 
 export default function StudentProfile() {
   const location = useLocation();
@@ -38,7 +43,9 @@ export default function StudentProfile() {
               className="h-32 w-32 rounded-full object-cover border-4 border-primary"
             />
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-2 text-primary">{student.name}</h1>
+              <h1 className="text-3xl font-bold mb-2 text-primary">
+                {student.name}
+              </h1>
               <div className="flex flex-col space-y-2">
                 <div className="flex items-center justify-center md:justify-start text-gray-text">
                   <Building2 className="h-5 w-5 mr-2" />
@@ -74,9 +81,11 @@ export default function StudentProfile() {
 
           {/* Interests Section */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 text-primary">Interests</h2>
+            <h2 className="text-xl font-semibold mb-4 text-primary">
+              Interests
+            </h2>
             <div className="flex flex-wrap gap-2">
-              {student.interests.map((interest, index) => (
+              {student.interests.map((interest: string, index: number) => (
                 <span
                   key={index}
                   className="px-4 py-2 rounded-full text-sm bg-primary-light text-primary"
@@ -91,7 +100,7 @@ export default function StudentProfile() {
           <div>
             <h2 className="text-xl font-semibold mb-4 text-primary">Skills</h2>
             <div className="flex flex-wrap gap-2">
-              {student.skills.map((skill, index) => (
+              {student.skills.map((skill: string, index: number) => (
                 <span
                   key={index}
                   className="px-4 py-2 rounded-full text-sm bg-gray-light text-primary"
@@ -105,7 +114,7 @@ export default function StudentProfile() {
           {/* Action Buttons */}
           <div className="flex gap-4 pt-4">
             <button
-              onClick={() => navigate('/chats')}
+              onClick={() => navigate("/chats")}
               className="flex-1 px-6 py-3 rounded-lg text-white bg-primary hover:bg-primary-dark transition-colors"
             >
               Send Message
