@@ -10,6 +10,8 @@ import {
   MessageSquare,
   User,
 } from "lucide-react";
+import { authService } from "../services/auth.service";
+import { toast } from "sonner";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -17,34 +19,91 @@ export default function SignUp() {
     firstName: "",
     lastName: "",
     email: "",
+    username: "",
     otp: "",
     password: "",
     confirmPassword: "",
   });
   const [error, setError] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
-
-  // Simulated OTP for demo (in real app, this would be sent via email/SMS)
-  const dummyOtp = "123456";
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
-  };
-
-  const handleSendOtp = () => {
-    if (!formData.email) {
-      setError("Please enter your email");
-      return;
-    }
-    setIsOtpSent(true);
     setError("");
-    // In a real application, you would send the OTP to the user's email here
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSendOtp = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      if (!formData.email) {
+        setError("Please enter your email");
+        return;
+      }
+
+      await authService.initiateSignup({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        username: formData.username,
+      });
+
+      setIsOtpSent(true);
+      toast.success("OTP Sent");
+    } catch (err: any) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const response = await authService.verifyOtp({
+        email: formData.email,
+        otp: formData.otp,
+      });
+
+      setIsOtpVerified(true);
+      toast.success("Email verified successfully!");
+
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      navigate("/setup-profile");
+    } catch (err: any) {
+      setError(err.message || "Failed to verify OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      await authService.resendOtp(formData.email);
+
+      toast.success("OTP Resent");
+    } catch (err: any) {
+      setError(err.message || "Failed to resend OTP");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -58,13 +117,8 @@ export default function SignUp() {
       return;
     }
 
-    if (!isOtpSent) {
-      handleSendOtp();
-      return;
-    }
-
-    if (formData.otp !== dummyOtp) {
-      setError("Invalid OTP. For demo, use: 123456");
+    if (!formData.username) {
+      setError("Please enter a username");
       return;
     }
 
@@ -78,7 +132,19 @@ export default function SignUp() {
       return;
     }
 
-    navigate("/signin");
+    try {
+      setIsLoading(true);
+
+      if (!isOtpSent) {
+        await handleSendOtp();
+      } else if (!isOtpVerified && formData.otp) {
+        await handleVerifyOtp();
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const features = [
@@ -124,41 +190,41 @@ export default function SignUp() {
           )}
 
           <form onSubmit={handleSignUp} className="space-y-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-text mb-1">
-                First Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text h-5 w-5" />
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter your first name"
-                  required
-                />
+            {/* Name Fields in same line */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-text mb-1">
+                  First Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text h-5 w-5" />
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="First name"
+                    required
+                  />
+                </div>
               </div>
-            </div>
-
-            {/* Last Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-text mb-1">
-                Last Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text h-5 w-5" />
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter your last name"
-                  required
-                />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-text mb-1">
+                  Last Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text h-5 w-5" />
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Last name"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -181,35 +247,68 @@ export default function SignUp() {
               </div>
             </div>
 
+            {/* Username */}
+            <div>
+              <label className="block text-sm font-medium text-gray-text mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text h-5 w-5" />
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Choose a username"
+                  required
+                />
+              </div>
+            </div>
+
             {/* OTP Section */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-gray-text">
-                  OTP
+                  Email Verification
                 </label>
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-sm text-primary hover:text-primary-dark"
-                >
-                  {isOtpSent ? "Resend OTP" : "Send OTP"}
-                </button>
+                {isOtpSent && !isOtpVerified && (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isLoading}
+                    className="text-sm text-primary hover:text-primary-dark"
+                  >
+                    Resend OTP
+                  </button>
+                )}
               </div>
-              <input
-                type="text"
-                name="otp"
-                value={formData.otp}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter 6-digit OTP"
-                maxLength={6}
-                required
-              />
-              {isOtpSent && (
-                <p className="text-sm text-primary mt-1">
-                  For demo, use: 123456
-                </p>
-              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="otp"
+                  value={formData.otp}
+                  onChange={handleChange}
+                  className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Enter verification code"
+                  disabled={!isOtpSent || isOtpVerified}
+                  required={isOtpSent && !isOtpVerified}
+                />
+                {isOtpSent && !isOtpVerified && (
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={!formData.otp || isLoading}
+                    className={`px-4 py-2 rounded-lg text-white transition-colors ${
+                      isOtpVerified
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-primary hover:bg-primary-dark"
+                    } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {isLoading ? "Verifying..." : "Verify OTP"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Password */}
@@ -252,9 +351,20 @@ export default function SignUp() {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-lg text-white font-medium bg-primary hover:bg-primary-dark transition-colors"
+              disabled={isLoading || (isOtpSent && !isOtpVerified)}
+              className={`w-full py-3 rounded-lg text-white font-medium bg-primary hover:bg-primary-dark transition-colors ${
+                isLoading || (isOtpSent && !isOtpVerified)
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
             >
-              Create Account
+              {isLoading
+                ? "Processing..."
+                : !isOtpSent
+                ? "Send Verification Code"
+                : !isOtpVerified
+                ? "Verify Email"
+                : "Create Account"}
             </button>
           </form>
 

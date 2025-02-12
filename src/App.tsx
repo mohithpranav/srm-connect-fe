@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import Directory from './pages/Directory';
-import Welcome from './pages/Welcome';
-import Guidelines from './pages/Guidelines';
-import Feed from './pages/Feed';
-import Chats from './pages/Chats';
-import StudentProfile from './pages/StudentProfile';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
+import React, { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import Directory from "./pages/Directory";
+import Welcome from "./pages/Welcome";
+import Guidelines from "./pages/Guidelines";
+import Feed from "./pages/Feed";
+import Chats from "./pages/Chats";
+import StudentProfile from "./pages/StudentProfile";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
+import { Toaster } from "sonner";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,9 +29,12 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/signin" element={<SignIn onSignIn={() => setIsAuthenticated(true)} />} />
+        <Route
+          path="/signin"
+          element={<SignIn onSignIn={() => setIsAuthenticated(true)} />}
+        />
         <Route path="/signup" element={<SignUp />} />
-        
+
         {/* Protected Routes */}
         <Route
           path="/*"
@@ -37,12 +46,18 @@ function App() {
                   <Navbar />
                   <div className="p-4">
                     <Routes>
-                      <Route path="/" element={<Navigate to="/feed" replace />} />
+                      <Route
+                        path="/"
+                        element={<Navigate to="/feed" replace />}
+                      />
                       <Route path="/feed" element={<Feed />} />
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/guidelines" element={<Guidelines />} />
                       <Route path="/directory" element={<Directory />} />
-                      <Route path="/directory/:id" element={<StudentProfile />} />
+                      <Route
+                        path="/directory/:id"
+                        element={<StudentProfile />}
+                      />
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/chats" element={<Chats />} />
@@ -54,6 +69,7 @@ function App() {
           }
         />
       </Routes>
+      <Toaster />
     </Router>
   );
 }
