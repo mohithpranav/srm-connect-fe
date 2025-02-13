@@ -5,10 +5,10 @@ import { authService } from "../services/auth.service";
 import { toast } from "sonner";
 
 interface SignInProps {
-  onSignIn: () => void;
+  onSignIn?: () => void;
 }
 
-export default function SignIn({ onSignIn }: SignInProps) {
+export default function SignIn({ onSignIn }: SignInProps = {}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +35,7 @@ export default function SignIn({ onSignIn }: SignInProps) {
       localStorage.setItem("user", JSON.stringify(response.user));
 
       toast.success("Signed in successfully!");
-      onSignIn();
+      onSignIn?.();
       navigate("/feed");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");

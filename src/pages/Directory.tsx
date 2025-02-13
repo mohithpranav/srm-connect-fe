@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { Search, MapPin, GraduationCap, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { studentService } from "../services/student.service";
+import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 
 interface Student {
   id: number;
@@ -49,6 +51,7 @@ const getYearSuffix = (year: number) => {
 };
 
 export default function Directory() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +107,18 @@ export default function Directory() {
   };
 
   const handleMessage = (studentId: number) => {
-    navigate(`/chats/${studentId}`);
+    // Prevent messaging yourself
+    if (studentId === user?.id) {
+      toast.error("You cannot message yourself");
+      return;
+    }
+
+    // Navigate to chats with the selected user ID
+    navigate(`/chats/${studentId}`, {
+      state: {
+        selectedUser: students.find((s) => s.id === studentId),
+      },
+    });
   };
 
   return (
